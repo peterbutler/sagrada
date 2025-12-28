@@ -22,36 +22,6 @@ class KasaConfig:
         """Get a device by its ID."""
         return self.devices.get(device_id)
 
-@dataclass
-class BLEDevice:
-    mac_address: str
-    location: str
-    added: str  # Could be datetime if you prefer
-    # Add any other BLE-specific device properties here
-
-@dataclass
-class BLEConfig:
-    scan_duration: float
-    scan_interval: float
-    devices: Dict[str, BLEDevice]
-    
-    def get_device(self, device_id: str) -> Optional[BLEDevice]:
-        """Get a device by its ID."""
-        return self.devices.get(device_id)
-
-@dataclass
-class OneWireDevice:
-    address: str
-    location: str
-    type: str
-
-@dataclass
-class OneWireConfig:
-    devices: Dict[str, OneWireDevice]
-    
-    def get_device(self, device_id: str) -> Optional[OneWireDevice]:
-        """Get a device by its ID."""
-        return self.devices.get(device_id)
 
 @dataclass
 class MySQLQuery:
@@ -70,8 +40,6 @@ class MySQLConfig:
 @dataclass
 class SensorConfigs:
     kasa: Optional[KasaConfig] = None
-    ble: Optional[BLEConfig] = None
-    onewire: Optional[OneWireConfig] = None
     mysql: Optional[MySQLConfig] = None
 
 @dataclass
@@ -135,28 +103,6 @@ def load_config(path: Optional[str] = None) -> Config:
             for device_id, device_config in kasa_data['devices'].items()
         }
         sensor_configs.kasa = KasaConfig(devices=kasa_devices)
-    
-    # Handle BLE devices if present
-    if 'ble' in sensor_data:
-        ble_data = sensor_data['ble']
-        ble_devices = {
-            device_id: BLEDevice(**device_config)
-            for device_id, device_config in ble_data['devices'].items()
-        }
-        sensor_configs.ble = BLEConfig(
-            scan_duration=ble_data['scan_duration'],
-            scan_interval=ble_data['scan_interval'],
-            devices=ble_devices
-        )
-    
-    # Handle OneWire devices if present
-    if 'onewire' in sensor_data:
-        onewire_data = sensor_data['onewire']
-        onewire_devices = {
-            device_id: OneWireDevice(**device_config)
-            for device_id, device_config in onewire_data['devices'].items()
-        }
-        sensor_configs.onewire = OneWireConfig(devices=onewire_devices)
     
     # Handle MySQL queries if present
     if 'mysql' in sensor_data:

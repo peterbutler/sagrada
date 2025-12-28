@@ -16,8 +16,6 @@ class DataCollector:
     # Define reader types and their corresponding classes
     READER_TYPES = {
         'kasa': '.readers.kasa.KasaPlugReader',
-        'ble': '.readers.ble.BLEReader',
-        'onewire': '.readers.onewire.OneWireReader',
         'mysql': '.readers.mysql.MySQLReader'
     }
 
