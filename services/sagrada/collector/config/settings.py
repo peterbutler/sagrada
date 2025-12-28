@@ -83,13 +83,17 @@ class Config:
 
 def get_environment() -> str:
     """Get the current environment name from .env or environment variables"""
-    load_dotenv()
-    return os.getenv('CLIMATE_ENV', 'development')
+    repo_root = Path(__file__).parent.parent.parent.parent.parent
+    env_path = repo_root / "config" / ".env"
+    load_dotenv(env_path)
+    return os.getenv('CLIMATE_ENV', 'sagrada')
 
 def load_config(path: Optional[str] = None) -> Config:
     """Load configuration from YAML file with environment variable support"""
-    # Load environment variables
-    load_dotenv()
+    # Load environment variables from repo config directory
+    repo_root = Path(__file__).parent.parent.parent.parent.parent
+    env_path = repo_root / "config" / ".env"
+    load_dotenv(env_path)
 
     env = get_environment()
 

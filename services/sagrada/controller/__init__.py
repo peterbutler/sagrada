@@ -15,7 +15,7 @@ def main():
 
     db_config = DBConfig.from_env()
 
-    controller = HeatingController(db_config, config.kasa)
+    controller = HeatingController(db_config, config.sensors.kasa)
 
     try:
         asyncio.run(controller.control_loop())

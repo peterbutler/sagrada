@@ -7,7 +7,7 @@ def main():
     """Entry point for collector service."""
     from .config.settings import load_config
     from sagrada.shared.logging import setup_logging
-    from sagrada.shared.database import DBConfig, ReadingsStorage
+    from sagrada.shared.database import DBConfig
 
     import time
 
@@ -15,18 +15,17 @@ def main():
     setup_logging(config.log_level)
 
     db_config = DBConfig.from_env()
-    storage = ReadingsStorage(db_config)
 
-    collector = DataCollector(config, storage)
+    collector = DataCollector(config.sensors, db_config)
 
     try:
         while True:
-            collector.collect()
+            collector.collect_and_store()
             time.sleep(config.collection_interval)
     except KeyboardInterrupt:
         pass
     finally:
-        storage.close()
+        collector.storage.close()
 
 
 __all__ = ["DataCollector", "main"]

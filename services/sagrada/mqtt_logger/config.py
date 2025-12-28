@@ -41,8 +41,10 @@ def load_config(config_path: Optional[str] = None) -> Config:
     Returns:
         Config object with all settings loaded.
     """
-    # Load .env file for database credentials
-    load_dotenv()
+    # Load .env file for database credentials from repo config directory
+    repo_root = Path(__file__).parent.parent.parent.parent
+    env_path = repo_root / "config" / ".env"
+    load_dotenv(env_path)
 
     # Determine config file path
     if config_path is None:
