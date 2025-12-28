@@ -1,0 +1,15 @@
+[Unit]
+Description=Sagrada MQTT to Database Logger
+After=network.target mariadb.service mosquitto.service
+Wants=mariadb.service mosquitto.service
+
+[Service]
+Type=simple
+User=peterbutler
+WorkingDirectory=/home/peterbutler/sagrada
+ExecStart=/home/peterbutler/sagrada/venv/bin/python scripts/run_mqtt_logger.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

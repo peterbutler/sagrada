@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sagrada"
+version = "0.1.0"
+description = "Sagrada climate monitoring and control system"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pymysql",
+    "pyyaml",
+    "python-dotenv",
+    "paho-mqtt>=2.0.0",
+    "python-kasa",
+    "bleak",
+    "aiohttp",
+    "rich",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "black",
+    "isort",
+    "mypy",
+]
+
+[project.scripts]
+sagrada-collector = "sagrada.collector:main"
+sagrada-controller = "sagrada.controller:main"
+sagrada-display = "sagrada.display:main"
+sagrada-mqtt-logger = "sagrada.mqtt_logger:main"
+sagrada-ble-bridge = "sagrada.ble_bridge:main"
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true

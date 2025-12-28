@@ -1,0 +1,39 @@
+# Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_level: "INFO"
+
+# Sensor configurations
+sensors:
+  mysql:
+    queries:
+      - query: >-
+          SELECT desired_temp 
+          FROM thermostat_control 
+          WHERE start_timestamp <= NOW() 
+          AND (end_timestamp IS NULL OR end_timestamp > NOW())
+          ORDER BY start_timestamp DESC 
+          LIMIT 1
+        sensor_id: thermostat_control # Table name
+        metric: target_temp_f
+        metric_type: numeric
+        location: shed
+        value_column: desired_temp # Column name
+  # dummy:
+  #   temperature:
+  #     - "dummy1"
+  #     - "dummy2"
+  #     - "dummy3"
+  kasa:
+    devices:
+      heater:
+        alias: "Shed heater"
+        location: "heater"
+      pump:
+        alias: "Pump"
+        location: "pump"
+      fan:
+        alias: "Shed radiator fan"
+        location: "fan"
+  # BLE sensors moved to ble-mqtt-bridge service
+
+# Collection interval in seconds
+collection_interval: 10

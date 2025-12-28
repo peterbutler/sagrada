@@ -1,0 +1,220 @@
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
+import { Header } from '../components/Header';
+import { QuickStatus } from '../components/QuickStatus';
+import { SensorPanel } from '../components/SensorPanel';
+import { TemperatureChart } from '../components/TemperatureChart';
+import { Controls } from '../components/Controls';
+import { Schedule } from '../components/Schedule';
+import { Footer } from '../components/Footer';
+import { useSensorData } from '../hooks/useSensorData';
+import { useHistory } from '../hooks/useHistory';
+import { useDelta } from '../hooks/useRateOfChange';
+
+// Heating loop sensors
+const HEATING_LOOP_LOCATIONS = ['tank', 'beginning', 'floor', 'end', 'pre-tank'];
+const HEATING_LOOP_LABELS = {
+  tank: 'Tank',
+  beginning: 'Coil In (beginning)',
+  floor: 'Floor',
+  end: 'Coil Out (end)',
+  'pre-tank': 'Return (pre-tank)'
+};
+
+// Environment sensors
+const ENVIRONMENT_LOCATIONS = ['desk', 'outside'];
+const ENVIRONMENT_LABELS = {
+  desk: 'Workspace (desk)',
+  outside: 'Outside'
+};
+
+export function Dashboard() {
+  const {
+    sensors,
+    devices,
+    targetTemp,
+    connectionState,
+    isConnected,
+    latency,
+    getSensor,
+    isHeating
+  } = useSensorData();
+
+  // Fetch history for charts - now includes pre-computed rates
+  const {
+    data: heatingLoopHistory,
+    rates: heatingLoopRates,
+    updateReading: updateHeatingReading
+  } = useHistory(HEATING_LOOP_LOCATIONS, 60);
+
+  const {
+    data: environmentHistory,
+    rates: environmentRates,
+    updateReading: updateEnvironmentReading
+  } = useHistory(ENVIRONMENT_LOCATIONS, 60);
+
+  // Calculate delta (inside - outside)
+  const deskTemp = sensors.desk?.temperature;
+  const outsideTemp = sensors.outside?.temperature;
+  const { delta, description: deltaDescription } = useDelta(deskTemp, outsideTemp);
+
+  // Get current desk temperature and rate for quick status
+  const currentTemp = deskTemp;
+  const deskRates = environmentRates.desk || [];
+  const currentRate = deskRates.length > 0 ? deskRates[deskRates.length - 1] : null;
+
+  // Build sensor arrays for panels using pre-computed rates from history
+  const heatingLoopSensors = useMemo(() => {
+    return HEATING_LOOP_LOCATIONS.map((location) => {
+      const sensor = getSensor(location);
+      // Use rate directly from the rates object (same data as chart uses)
+      const locationRates = heatingLoopRates[location] || [];
+      const rate = locationRates.length > 0 ? locationRates[locationRates.length - 1] : null;
+      return {
+        id: location,
+        label: HEATING_LOOP_LABELS[location],
+        temperature: sensor.temperature,
+        rate,
+        timestamp: sensor.timestamp
+      };
+    });
+  }, [getSensor, heatingLoopRates]);
+
+  const environmentSensors = useMemo(() => {
+    // Helper to get current rate from rates array
+    const getRate = (location) => {
+      const locationRates = environmentRates[location] || [];
+      return locationRates.length > 0 ? locationRates[locationRates.length - 1] : null;
+    };
+
+    return [
+      {
+        id: 'desk',
+        label: ENVIRONMENT_LABELS.desk,
+        temperature: sensors.desk?.temperature,
+        rate: getRate('desk'),
+        timestamp: sensors.desk?.timestamp
+      },
+      {
+        id: 'outside',
+        label: ENVIRONMENT_LABELS.outside,
+        temperature: sensors.outside?.temperature,
+        rate: getRate('outside'),
+        timestamp: sensors.outside?.timestamp
+      },
+      {
+        id: 'delta',
+        label: 'Delta (in-out)',
+        temperature: delta,
+        customTrend: { text: deltaDescription, className: 'stable' },
+        timestamp: null // Delta doesn't have its own timestamp
+      }
+    ];
+  }, [sensors, environmentRates, delta, deltaDescription]);
+
+  // Track previous sensor timestamps to only update when a specific sensor changes
+  const prevTimestamps = useRef({});
+
+  // Update chart history with WebSocket readings
+  // Only update the sensor that actually changed (based on timestamp)
+  useEffect(() => {
+    if (!sensors) return;
+
+    HEATING_LOOP_LOCATIONS.forEach((location) => {
+      const sensor = sensors[location];
+      if (sensor?.temperature !== undefined && sensor?.timestamp) {
+        // Only update if timestamp changed for this specific sensor
+        if (prevTimestamps.current[location] !== sensor.timestamp) {
+          prevTimestamps.current[location] = sensor.timestamp;
+          updateHeatingReading(location, {
+            timestamp: sensor.timestamp,
+            value: sensor.temperature
+          });
+        }
+      }
+    });
+
+    ENVIRONMENT_LOCATIONS.forEach((location) => {
+      const sensor = sensors[location];
+      if (sensor?.temperature !== undefined && sensor?.timestamp) {
+        // Only update if timestamp changed for this specific sensor
+        if (prevTimestamps.current[location] !== sensor.timestamp) {
+          prevTimestamps.current[location] = sensor.timestamp;
+          updateEnvironmentReading(location, {
+            timestamp: sensor.timestamp,
+            value: sensor.temperature
+          });
+        }
+      }
+    });
+  }, [sensors, updateHeatingReading, updateEnvironmentReading]);
+
+  // Handlers for control changes (optimistic updates from WebSocket will handle state)
+  const handleTargetChange = useCallback((temp) => {
+    // WebSocket will update the actual state
+  }, []);
+
+  const handleDeviceChange = useCallback((device, state) => {
+    // WebSocket will update the actual state
+  }, []);
+
+  return (
+    <div className="dashboard">
+      <Header
+        connectionState={connectionState}
+        latency={latency}
+      />
+
+      <QuickStatus
+        currentTemp={currentTemp}
+        targetTemp={targetTemp}
+        heatingRate={currentRate}
+        isHeating={isHeating}
+        devices={devices}
+        sensors={sensors}
+      />
+
+      <div className="main-content">
+        <SensorPanel
+          title="Heating Loop"
+          icon="🔥"
+          sensors={heatingLoopSensors}
+          isHeating={isHeating}
+        >
+          <TemperatureChart
+            title="LAST HOUR"
+            data={heatingLoopHistory}
+            rates={heatingLoopRates}
+            locations={HEATING_LOOP_LOCATIONS}
+            locationLabels={HEATING_LOOP_LABELS}
+          />
+        </SensorPanel>
+
+        <SensorPanel
+          title="Environment"
+          icon="🌡️"
+          sensors={environmentSensors}
+          isHeating={isHeating}
+        >
+          <TemperatureChart
+            title="LAST HOUR"
+            data={environmentHistory}
+            rates={environmentRates}
+            locations={ENVIRONMENT_LOCATIONS}
+            locationLabels={ENVIRONMENT_LABELS}
+          />
+        </SensorPanel>
+      </div>
+
+      <Controls
+        targetTemp={targetTemp}
+        devices={devices}
+        onTargetChange={handleTargetChange}
+        onDeviceChange={handleDeviceChange}
+      />
+
+      <Schedule />
+
+      <Footer />
+    </div>
+  );
+}

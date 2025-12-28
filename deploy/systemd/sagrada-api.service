@@ -1,0 +1,16 @@
+[Unit]
+Description=Sagrada TypeScript API Server
+After=network.target mariadb.service mosquitto.service
+Wants=mariadb.service mosquitto.service
+
+[Service]
+Type=simple
+User=peterbutler
+WorkingDirectory=/home/peterbutler/sagrada/api
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npx tsx src/index.ts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Sagrada Climate Sensor Collector
+After=network.target mariadb.service mosquitto.service
+Wants=mariadb.service mosquitto.service
+
+[Service]
+Type=simple
+User=peterbutler
+WorkingDirectory=/home/peterbutler/sagrada
+Environment=CLIMATE_ENV=sagrada
+ExecStart=/home/peterbutler/sagrada/venv/bin/python scripts/run_collector.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

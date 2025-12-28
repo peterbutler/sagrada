@@ -1,0 +1,23 @@
+[Unit]
+Description=Sagrada Thermostat API (TypeScript)
+After=network.target mariadb.service mosquitto.service
+Wants=mariadb.service mosquitto.service
+
+[Service]
+Type=simple
+User=peterbutler
+Group=peterbutler
+WorkingDirectory=/home/peterbutler/cathedral-test/api
+Environment=PATH=/home/peterbutler/.nvm/versions/node/v22.19.0/bin:/usr/bin:/bin
+Environment=NODE_ENV=production
+ExecStart=/home/peterbutler/.nvm/versions/node/v22.19.0/bin/npx tsx src/index.ts
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sagrada-api
+
+[Install]
+WantedBy=multi-user.target

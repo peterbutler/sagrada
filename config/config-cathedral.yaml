@@ -1,0 +1,43 @@
+# Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_level: "INFO"
+
+# Sensor configurations
+sensors:
+  # dummy:
+  #   temperature:
+  #     - "dummy1"
+  #     - "dummy2"
+  #     - "dummy3"
+  onewire:
+    devices:
+      outside-temp:
+        address: "28-020391775c45"
+        location: "outside"
+        type: "ds18b20"
+      desk-temp:
+        address: "28-02089177921f"
+        location: "desk"
+        type: "ds18b20"
+      floor-temp:
+        address: "28-3c02e3816302"
+        location: "floor"
+        type: "ds18b20"
+      heater-output-temp:
+        address: "28-022010726b53"
+        location: "heater-output"
+        type: "ds18b20"
+      heater-input-temp:
+        address: "28-02201068f88b"
+        location: "heater-input"
+        type: "ds18b20"
+      pre-tank-temp:
+        address: "28-02201059762e"
+        location: "pre-tank"
+        type: "ds18b20"
+      tank-temp:
+        address: "28-3c0ae3811275"
+        location: "tank"
+        type: "ds18b20"
+
+# Collection interval in seconds
+collection_interval: 10
