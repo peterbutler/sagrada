@@ -109,7 +109,7 @@ class HeatingController:
     LOCATION_SYSTEM = 'system'
 
     # Base metric names
-    METRIC_TEMPERATURE = 'temperature_f'
+    METRIC_TEMPERATURE = 'temperature_c'  # Stored in Celsius, converted to F internally
     METRIC_CONTROL_STATE = 'control_state'
     METRIC_TARGET_TEMP = 'target_temp_f'
 
@@ -239,12 +239,13 @@ class HeatingController:
                 metrics=[self.METRIC_TEMPERATURE]
             )
             
-            # Convert to dictionary of location: value
-            readings_dict = {
-                reading.location: float(reading.value) 
-                for reading in readings
-                if reading.value and reading.value.lower() != 'null'  # Skip null values
-            }
+            # Convert to dictionary of location: value (converting C to F)
+            readings_dict = {}
+            for reading in readings:
+                if reading.value and reading.value.lower() != 'null':
+                    temp_c = float(reading.value)
+                    temp_f = temp_c * 9.0 / 5.0 + 32.0
+                    readings_dict[reading.location] = temp_f
             
             # Get target temperature from thermostat
             thermostat_readings = self.storage.get_current_readings(
