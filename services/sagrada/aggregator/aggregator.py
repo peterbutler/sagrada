@@ -157,6 +157,10 @@ class ReadingsAggregator:
         fresh aggregations. This avoids duplicates without requiring a
         composite unique key on the table.
 
+        TODO: This could be more efficient with INSERT ... ON DUPLICATE KEY UPDATE
+        if we add a composite unique key on (timestamp, location, sensor_id, metric).
+        That would require cleaning up existing duplicates first.
+
         Args:
             start_time: Start of time range to aggregate.
             end_time: End of time range to aggregate.
