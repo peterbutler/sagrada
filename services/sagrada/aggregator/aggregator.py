@@ -129,12 +129,6 @@ class ReadingsAggregator:
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
-        ON DUPLICATE KEY UPDATE
-            avg_value = VALUES(avg_value),
-            min_value = VALUES(min_value),
-            max_value = VALUES(max_value),
-            end_state = VALUES(end_state),
-            sample_count = VALUES(sample_count)
         """
 
         values = [
@@ -159,23 +153,40 @@ class ReadingsAggregator:
     def aggregate(self, start_time: datetime, end_time: datetime) -> int:
         """Aggregate sensor readings for a time range.
 
+        Deletes any existing minute_readings in the time range, then inserts
+        fresh aggregations. This avoids duplicates without requiring a
+        composite unique key on the table.
+
         Args:
             start_time: Start of time range to aggregate.
             end_time: End of time range to aggregate.
 
         Returns:
-            Number of minute_readings records inserted/updated.
+            Number of minute_readings records inserted.
         """
         connection = self._get_connection()
 
         try:
             with connection.cursor() as cursor:
+                # Delete existing records for this time range
+                delete_sql = """
+                DELETE FROM minute_readings
+                WHERE timestamp >= %s AND timestamp < %s
+                """
+                cursor.execute(delete_sql, (start_time, end_time))
+                deleted = cursor.rowcount
+
+                # Get fresh aggregated data
                 query = get_aggregation_query()
                 cursor.execute(query, (start_time, end_time))
                 results = cursor.fetchall()
 
+                # Insert new aggregated records
                 rows_inserted = self._store_aggregated_data(cursor, results)
                 connection.commit()
+
+                if deleted > 0:
+                    logger.debug(f"Replaced {deleted} existing records")
 
                 return rows_inserted
 
