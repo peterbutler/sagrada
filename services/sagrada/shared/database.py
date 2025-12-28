@@ -142,15 +142,19 @@ class ReadingsStorage:
         self,
         source_type: Optional[str] = None,
         location: Optional[str] = None,
+        locations: Optional[List[str]] = None,
         metric: Optional[str] = None,
+        metrics: Optional[List[str]] = None,
         max_age_seconds: Optional[int] = None,
     ) -> List[Reading]:
         """Get current readings with optional filters.
 
         Args:
             source_type: Filter by source type (e.g., 'kasa', 'ble').
-            location: Filter by location.
-            metric: Filter by metric name.
+            location: Filter by single location.
+            locations: Filter by multiple locations (OR).
+            metric: Filter by single metric name.
+            metrics: Filter by multiple metric names (OR).
             max_age_seconds: Only return readings newer than this many seconds.
 
         Returns:
@@ -159,7 +163,7 @@ class ReadingsStorage:
         conn = self._get_connection()
 
         conditions = []
-        params = []
+        params: List = []
 
         if source_type:
             conditions.append("source_type = %s")
@@ -167,9 +171,17 @@ class ReadingsStorage:
         if location:
             conditions.append("location = %s")
             params.append(location)
+        elif locations:
+            placeholders = ", ".join(["%s"] * len(locations))
+            conditions.append(f"location IN ({placeholders})")
+            params.extend(locations)
         if metric:
             conditions.append("metric = %s")
             params.append(metric)
+        elif metrics:
+            placeholders = ", ".join(["%s"] * len(metrics))
+            conditions.append(f"metric IN ({placeholders})")
+            params.extend(metrics)
         if max_age_seconds:
             cutoff = datetime.now() - timedelta(seconds=max_age_seconds)
             conditions.append("timestamp >= %s")
