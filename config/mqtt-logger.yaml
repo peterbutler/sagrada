@@ -1,0 +1,12 @@
+mqtt:
+  broker: "localhost"
+  port: 1883
+  client_id: "sagrada-logger"
+
+subscriptions:
+  - pattern: "+/+/+/temperature"
+    type: "temperature"
+  - pattern: "+/+/+/humidity"
+    type: "humidity"
+
+log_level: "INFO"

@@ -46,9 +46,9 @@ def load_config(config_path: Optional[str] = None) -> Config:
 
     # Determine config file path
     if config_path is None:
-        # Look for config.yaml in the mqtt-logger directory (parent of mqtt_logger package)
-        package_dir = Path(__file__).parent.parent
-        config_path = package_dir / "config.yaml"
+        # Look for mqtt-logger.yaml in the repo's config directory
+        repo_root = Path(__file__).parent.parent.parent.parent
+        config_path = repo_root / "config" / "mqtt-logger.yaml"
     else:
         config_path = Path(config_path)
 

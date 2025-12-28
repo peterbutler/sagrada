@@ -8,22 +8,19 @@ def main():
     import asyncio
     from sagrada.collector.config.settings import load_config
     from sagrada.shared.logging import setup_logging
-    from sagrada.shared.database import DBConfig, ReadingsStorage
+    from sagrada.shared.database import DBConfig
 
     config = load_config()
     setup_logging(config.log_level)
 
     db_config = DBConfig.from_env()
-    storage = ReadingsStorage(db_config)
 
-    controller = HeatingController(config, storage)
+    controller = HeatingController(db_config, config.kasa)
 
     try:
-        asyncio.run(controller.run())
+        asyncio.run(controller.control_loop())
     except KeyboardInterrupt:
         pass
-    finally:
-        storage.close()
 
 
 __all__ = ["HeatingController", "main"]

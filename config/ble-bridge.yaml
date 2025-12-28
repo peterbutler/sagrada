@@ -1,0 +1,41 @@
+mqtt:
+  broker: "localhost"
+  port: 1883
+  client_id: "ble-mqtt-bridge"
+
+ble:
+  scan_duration: 10.0
+  scan_interval: 300.0      # Rescan every 5 min for new devices
+  reconnect_delay: 5.0
+  connection_timeout: 20.0
+  device_pattern: "ST-FLORIAN*"  # Discovery pattern
+
+# Location mapping: device name suffix -> {system, location}
+location_mapping:
+  "2":
+    system: "ambient"
+    location: "workbench"
+  "3":
+    system: "outside"
+    location: "main"
+  "6":
+    system: "ambient"
+    location: "door"
+
+# Default building for all discovered devices
+defaults:
+  building: "shed"
+  system: "ambient"
+
+# BLE characteristics to subscribe to
+characteristics:
+  temperature:
+    uuid: "00002a6e-0000-1000-8000-00805f9b34fb"
+    unit: "C"
+    scale: 0.01
+  humidity:
+    uuid: "00002a6f-0000-1000-8000-00805f9b34fb"
+    unit: "%"
+    scale: 0.01
+
+log_level: "INFO"
