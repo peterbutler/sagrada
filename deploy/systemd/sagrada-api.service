@@ -8,7 +8,8 @@ Type=simple
 User=peterbutler
 WorkingDirectory=/home/peterbutler/sagrada/api
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/npx tsx src/index.ts
+Environment=PATH=/home/peterbutler/.nvm/versions/node/v22.19.0/bin:/usr/bin:/bin
+ExecStart=/home/peterbutler/.nvm/versions/node/v22.19.0/bin/npx tsx src/index.ts
 Restart=always
 RestartSec=10
 
