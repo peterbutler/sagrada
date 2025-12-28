@@ -142,23 +142,29 @@ class BLEManager:
         )
 
         scanner = BleakScanner()
-        devices = await scanner.discover(timeout=self.config.scan_duration)
+        await scanner.start()
+        await asyncio.sleep(self.config.scan_duration)
+        await scanner.stop()
+
+        # Get devices with advertisement data (includes rssi)
+        devices_and_ads = scanner.discovered_devices_and_advertisement_data
 
         discovered = []
-        for device in devices:
+        for address, (device, adv_data) in devices_and_ads.items():
             if device.name and fnmatch.fnmatch(device.name, self.config.device_pattern):
                 location_config = self._get_location_config(device.name)
+                rssi = adv_data.rssi if adv_data else -100
                 disc_device = DiscoveredDevice(
                     name=device.name,
                     address=device.address,
-                    rssi=device.rssi,
+                    rssi=rssi,
                     location_config=location_config,
                 )
                 discovered.append(disc_device)
                 loc_str = f"{location_config.system}/{location_config.location}" if location_config else "unknown"
                 logger.info(
                     f"Found device: {device.name} ({device.address}) "
-                    f"RSSI: {device.rssi}, Location: {loc_str}"
+                    f"RSSI: {rssi}, Location: {loc_str}"
                 )
 
         logger.info(f"Scan complete. Found {len(discovered)} matching devices.")

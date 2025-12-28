@@ -1,5 +1,7 @@
 """Terminal display service."""
 
+import time
+
 from .terminal_monitor import TerminalMonitor
 from .data_fetcher import DataFetcher
 
@@ -8,23 +10,20 @@ def main():
     """Entry point for display service."""
     from sagrada.collector.config.settings import load_config
     from sagrada.shared.logging import setup_logging
-    from sagrada.shared.database import DBConfig, ReadingsStorage
 
     config = load_config()
     setup_logging(config.log_level)
 
-    db_config = DBConfig.from_env()
-    storage = ReadingsStorage(db_config)
-
-    fetcher = DataFetcher(storage)
-    monitor = TerminalMonitor(fetcher)
+    monitor = TerminalMonitor(config)
 
     try:
-        monitor.run()
+        while True:
+            monitor.update_display()
+            time.sleep(5)  # Update every 5 seconds
     except KeyboardInterrupt:
         pass
     finally:
-        storage.close()
+        monitor.cleanup()
 
 
 __all__ = ["TerminalMonitor", "DataFetcher", "main"]
