@@ -1,7 +1,11 @@
 """Sensor readings aggregation service."""
 
+import os
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from .aggregator import ReadingsAggregator
 
@@ -10,6 +14,11 @@ def main():
     """Entry point for aggregator service."""
     from sagrada.shared.logging import setup_logging, get_logger
     from sagrada.shared.database import DBConfig
+
+    # Load environment variables from config directory
+    repo_root = Path(__file__).parent.parent.parent.parent
+    env_path = repo_root / "config" / ".env"
+    load_dotenv(env_path)
 
     setup_logging("INFO")
     logger = get_logger("ReadingsAggregator")
