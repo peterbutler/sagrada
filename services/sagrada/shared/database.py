@@ -109,12 +109,13 @@ class ReadingsStorage:
                 # Update current_readings for each unique sensor/metric
                 upsert_sql = """
                     INSERT INTO current_readings
-                    (sensor_id, location, metric, metric_type, value, timestamp, source_type)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (sensor_id, location, metric, metric_type, value, timestamp, source_type, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                     ON DUPLICATE KEY UPDATE
                         value = VALUES(value),
                         timestamp = VALUES(timestamp),
-                        source_type = VALUES(source_type)
+                        source_type = VALUES(source_type),
+                        updated_at = NOW()
                 """
                 for r in readings:
                     cursor.execute(
