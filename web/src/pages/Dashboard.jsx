@@ -21,10 +21,10 @@ const HEATING_LOOP_LABELS = {
 };
 
 // Environment sensors
-const ENVIRONMENT_LOCATIONS = ['ambient/workbench', 'ambient/door', 'desk', 'outside'];
+const ENVIRONMENT_LOCATIONS = ['workbench', 'door', 'desk', 'outside'];
 const ENVIRONMENT_LABELS = {
-  'ambient/workbench': 'Workbench',
-  'ambient/door': 'Door',
+  workbench: 'Workbench',
+  door: 'Door',
   desk: 'Desk',
   outside: 'Outside'
 };

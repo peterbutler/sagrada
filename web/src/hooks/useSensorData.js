@@ -17,8 +17,8 @@ export const SENSOR_LOCATIONS = [
   'floor',
   'desk',
   'outside',
-  'ambient/workbench',
-  'ambient/door'
+  'workbench',
+  'door'
 ];
 
 /**
