@@ -21,9 +21,11 @@ const HEATING_LOOP_LABELS = {
 };
 
 // Environment sensors
-const ENVIRONMENT_LOCATIONS = ['desk', 'outside'];
+const ENVIRONMENT_LOCATIONS = ['ambient/workbench', 'ambient/door', 'desk', 'outside'];
 const ENVIRONMENT_LABELS = {
-  desk: 'Workspace (desk)',
+  'ambient/workbench': 'Workbench',
+  'ambient/door': 'Door',
+  desk: 'Desk',
   outside: 'Outside'
 };
 
@@ -86,29 +88,25 @@ export function Dashboard() {
       return locationRates.length > 0 ? locationRates[locationRates.length - 1] : null;
     };
 
-    return [
-      {
-        id: 'desk',
-        label: ENVIRONMENT_LABELS.desk,
-        temperature: sensors.desk?.temperature,
-        rate: getRate('desk'),
-        timestamp: sensors.desk?.timestamp
-      },
-      {
-        id: 'outside',
-        label: ENVIRONMENT_LABELS.outside,
-        temperature: sensors.outside?.temperature,
-        rate: getRate('outside'),
-        timestamp: sensors.outside?.timestamp
-      },
-      {
-        id: 'delta',
-        label: 'Delta (in-out)',
-        temperature: delta,
-        customTrend: { text: deltaDescription, className: 'stable' },
-        timestamp: null // Delta doesn't have its own timestamp
-      }
-    ];
+    // Build sensor list from ENVIRONMENT_LOCATIONS
+    const sensorList = ENVIRONMENT_LOCATIONS.map(location => ({
+      id: location,
+      label: ENVIRONMENT_LABELS[location] || location,
+      temperature: sensors[location]?.temperature,
+      rate: getRate(location),
+      timestamp: sensors[location]?.timestamp
+    }));
+
+    // Add delta as a special entry
+    sensorList.push({
+      id: 'delta',
+      label: 'Delta (in-out)',
+      temperature: delta,
+      customTrend: { text: deltaDescription, className: 'stable' },
+      timestamp: null
+    });
+
+    return sensorList;
   }, [sensors, environmentRates, delta, deltaDescription]);
 
   // Track previous sensor timestamps to only update when a specific sensor changes
