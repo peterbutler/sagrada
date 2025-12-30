@@ -58,16 +58,7 @@ export function formatRate(ratePerHour, isHeating = false) {
   const arrow = ratePerHour > 0 ? '↑' : '↓';
   const className = ratePerHour > 0 ? 'heating' : 'cooling';
 
-  // For fast changes (>10°F/hr), show per-minute rate
-  if (absRate > 10) {
-    const ratePerMinute = ratePerHour / 60;
-    return {
-      text: `${arrow} ${sign}${ratePerMinute.toFixed(2)}°/min`,
-      className
-    };
-  }
-
-  // Normal per-hour rate
+  // Always show °F/hr for comparability
   return {
     text: `${arrow} ${sign}${ratePerHour.toFixed(1)}°/hr`,
     className

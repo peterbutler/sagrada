@@ -197,10 +197,10 @@ export function TemperatureChart({
       ...BASE_OPTIONS.scales,
       y: {
         ...BASE_OPTIONS.scales.y,
-        // Fixed scale for rate mode: -10 to +10 °F/hr
+        // Fixed scale for rate mode: -30 to +30 °F/hr
         ...(mode === ChartMode.RATE ? {
-          min: -10,
-          max: 10
+          min: -30,
+          max: 30
         } : {}),
         title: {
           display: true,

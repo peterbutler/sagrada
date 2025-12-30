@@ -6,8 +6,8 @@
   "scripts": {
     "start": "NODE_ENV=development webpack serve --mode development --hot",
     "build": "webpack --mode production",
-    "sync": "unison sagrada -batch",
-    "build:sync": "npm run build && npm run sync",
+    "deploy": "rsync -avz --delete ../public/ sagrada.local:/home/peterbutler/www/public/",
+    "build:deploy": "npm run build && npm run deploy",
     "test": "jest"
   },
   "dependencies": {

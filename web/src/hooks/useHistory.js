@@ -4,8 +4,8 @@ import { fetchHistory } from '../api/client';
 // Number of historical minute buckets (not including current)
 const HISTORY_MINUTES = 59;
 
-// How many minutes back to compare for rate calculation
-const RATE_LOOKBACK_MINUTES = 5;
+// Window size for linear regression rate calculation (minutes)
+const RATE_WINDOW_MINUTES = 10;
 
 /**
  * Get the minute bucket key for a timestamp
@@ -18,32 +18,81 @@ function getMinuteKey(timestamp) {
 }
 
 /**
- * Calculate rate array from value points
- * Each rate compares current point to RATE_LOOKBACK_MINUTES ago
+ * Calculate rate using linear regression over a window of points.
+ * This is much more stable than comparing two points because it:
+ * - Uses all data points in the window
+ * - Is resistant to noise in individual readings
+ * - Gives the true trend rather than instantaneous change
+ *
+ * @param {Array<{avg: number}>} points - Array of points to fit
+ * @returns {number|null} Slope in °F/hr, or null if insufficient data
+ */
+function linearRegressionRate(points) {
+  // Filter out null/undefined values
+  const validPoints = points.filter(p => p?.avg !== null && p?.avg !== undefined);
+
+  if (validPoints.length < 3) {
+    return null;
+  }
+
+  const n = validPoints.length;
+
+  // x = time in hours (0, 1/60, 2/60, ... for minute-spaced data)
+  // y = temperature
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumX2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    const x = i / 60; // Convert minutes to hours
+    const y = validPoints[i].avg;
+
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumX2 += x * x;
+  }
+
+  // Linear regression slope formula
+  const denominator = n * sumX2 - sumX * sumX;
+  if (Math.abs(denominator) < 1e-10) {
+    return null; // Avoid division by zero
+  }
+
+  const slope = (n * sumXY - sumX * sumY) / denominator;
+  return slope; // Already in °F/hr since x is in hours
+}
+
+/**
+ * Calculate rate array from value points using linear regression.
+ * Each rate is computed from a sliding window of RATE_WINDOW_MINUTES points.
+ *
  * @param {Array<{avg: number}>} points - Array of data points with avg values
  * @param {string} location - Location name for logging
  * @returns {Array<number|null>} Rate in °F/hr for each point
  */
 function calculateRateArray(points, location = 'unknown') {
-  if (!points || points.length < RATE_LOOKBACK_MINUTES + 1) {
+  if (!points || points.length < RATE_WINDOW_MINUTES) {
     return points ? points.map(() => null) : [];
   }
 
   return points.map((point, i) => {
-    if (i < RATE_LOOKBACK_MINUTES || point?.avg === null || point?.avg === undefined) {
+    // Need at least RATE_WINDOW_MINUTES points ending at current index
+    if (i < RATE_WINDOW_MINUTES - 1) {
       return null;
     }
-    const pastPoint = points[i - RATE_LOOKBACK_MINUTES];
-    if (!pastPoint || pastPoint.avg === null || pastPoint.avg === undefined) {
-      return null;
-    }
-    // Rate per hour: (current - past) / (lookback / 60)
-    const hoursElapsed = RATE_LOOKBACK_MINUTES / 60;
-    const rate = (point.avg - pastPoint.avg) / hoursElapsed;
+
+    // Get the window of points ending at current index
+    const windowStart = i - RATE_WINDOW_MINUTES + 1;
+    const windowPoints = points.slice(windowStart, i + 1);
+
+    const rate = linearRegressionRate(windowPoints);
 
     // Log the last (current) rate calculation
-    if (i === points.length - 1) {
-      console.log(`[Rate ${location}] current=${point.avg.toFixed(2)}°F (i=${i}), past=${pastPoint.avg.toFixed(2)}°F (i=${i - RATE_LOOKBACK_MINUTES}), diff=${(point.avg - pastPoint.avg).toFixed(2)}°F, rate=${rate.toFixed(2)}°F/hr`);
+    if (i === points.length - 1 && rate !== null) {
+      const validCount = windowPoints.filter(p => p?.avg !== null && p?.avg !== undefined).length;
+      console.log(`[Rate ${location}] linear regression over ${validCount} points, rate=${rate.toFixed(2)}°F/hr`);
     }
 
     return rate;
@@ -287,10 +336,8 @@ export function useHistory(locations, minutes = 60) {
     // Log data structure info for first location
     if (firstLocation && data[firstLocation]) {
       const points = data[firstLocation];
-      const lastIdx = points.length - 1;
-      const compareIdx = lastIdx - RATE_LOOKBACK_MINUTES;
-      if (points.length > RATE_LOOKBACK_MINUTES) {
-        console.log(`[Data structure ${firstLocation}] total points=${points.length}, last timestamp=${points[lastIdx]?.timestamp}, compare timestamp=${points[compareIdx]?.timestamp}`);
+      if (points.length > RATE_WINDOW_MINUTES) {
+        console.log(`[Data structure ${firstLocation}] total points=${points.length}, using ${RATE_WINDOW_MINUTES}-min linear regression window`);
       }
     }
 
