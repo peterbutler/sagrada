@@ -1,11 +1,19 @@
 import { Client } from 'tplink-smarthome-api';
 import { DeviceName } from '../types/index.js';
+import { publishDeviceState } from '../mqtt/bridge.js';
 
 // Kasa client singleton
 let client: Client | null = null;
 
 // Device cache (discovered devices by alias)
 const deviceCache = new Map<string, unknown>();
+
+// Mapping from API device names to actual Kasa device aliases
+const DEVICE_ALIAS_MAP: Record<DeviceName, string> = {
+  heater: 'shed heater',
+  fan: 'shed radiator fan',
+  pump: 'pump',
+};
 
 /**
  * Get or create the Kasa client
@@ -44,12 +52,13 @@ export async function discoverDevices(timeout: number = 5000): Promise<void> {
  * Get a device by name
  */
 function getDevice(name: DeviceName): unknown {
-  // Try exact match first, then lowercase
-  const device = deviceCache.get(name) || deviceCache.get(name.toLowerCase());
+  // Map API name to actual Kasa alias
+  const alias = DEVICE_ALIAS_MAP[name];
+  const device = deviceCache.get(alias.toLowerCase());
 
   if (!device) {
     throw new Error(
-      `Device "${name}" not found. Available: ${Array.from(deviceCache.keys()).join(', ')}`
+      `Device "${name}" (alias: "${alias}") not found. Available: ${Array.from(deviceCache.keys()).join(', ')}`
     );
   }
 
@@ -68,6 +77,9 @@ export async function setDeviceState(name: DeviceName, state: boolean): Promise<
 
   await device.setPowerState(state);
   console.log(`Set ${name} to ${state ? 'ON' : 'OFF'}`);
+
+  // Publish state change to MQTT so all clients get updated via WebSocket
+  publishDeviceState(name, state);
 }
 
 /**

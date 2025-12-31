@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { setTargetTemperature, turnOffTarget, setDeviceState } from '../api/client';
 
 const TEMP_PRESETS = [65, 68, 70, 72];
@@ -24,12 +24,30 @@ export function Controls({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Track pending device states: { [device]: expectedState }
+  const [pendingDevices, setPendingDevices] = useState({});
+
   // Update local target when prop changes
   React.useEffect(() => {
     if (targetTemp !== null && targetTemp !== undefined) {
       setLocalTarget(targetTemp);
     }
   }, [targetTemp]);
+
+  // Clear pending state when device state matches expected
+  useEffect(() => {
+    const stillPending = {};
+    for (const [device, expectedState] of Object.entries(pendingDevices)) {
+      const actualState = devices[device]?.state;
+      if (actualState !== expectedState) {
+        stillPending[device] = expectedState;
+      }
+    }
+    // Only update if something changed
+    if (Object.keys(stillPending).length !== Object.keys(pendingDevices).length) {
+      setPendingDevices(stillPending);
+    }
+  }, [devices, pendingDevices]);
 
   const handleIncrement = () => {
     setLocalTarget(prev => Math.min(90, prev + 1));
@@ -84,20 +102,27 @@ export function Controls({
   }, [localTarget, duration, onTargetChange]);
 
   const handleDeviceToggle = useCallback(async (device) => {
-    const currentState = devices[device]?.state || false;
+    // Use pending state if exists, otherwise current state
+    const currentState = pendingDevices[device] ?? devices[device]?.state ?? false;
     const newState = !currentState;
 
-    setIsSubmitting(true);
+    // Immediately show pending state
+    setPendingDevices(prev => ({ ...prev, [device]: newState }));
     setError(null);
+
     try {
       await setDeviceState(device, newState);
       onDeviceChange?.(device, newState);
     } catch (err) {
       setError(err.message);
-    } finally {
-      setIsSubmitting(false);
+      // Revert pending state on error
+      setPendingDevices(prev => {
+        const next = { ...prev };
+        delete next[device];
+        return next;
+      });
     }
-  }, [devices, onDeviceChange]);
+  }, [devices, pendingDevices, onDeviceChange]);
 
   const isOff = targetTemp === null || targetTemp === undefined || targetTemp === 0;
   const tempDisplay = isOff ? 'OFF' : `${localTarget}°F`;
@@ -184,27 +209,23 @@ export function Controls({
         <div className="control-group">
           <span className="control-label">Manual Override</span>
           <div className="device-toggles">
-            <button
-              className={`device-btn ${devices.heater?.state ? 'on' : ''}`}
-              onClick={() => handleDeviceToggle('heater')}
-              disabled={isSubmitting}
-            >
-              Heater: {devices.heater?.state ? 'ON' : 'OFF'}
-            </button>
-            <button
-              className={`device-btn ${devices.pump?.state ? 'on' : ''}`}
-              onClick={() => handleDeviceToggle('pump')}
-              disabled={isSubmitting}
-            >
-              Pump: {devices.pump?.state ? 'ON' : 'OFF'}
-            </button>
-            <button
-              className={`device-btn ${devices.fan?.state ? 'on' : ''}`}
-              onClick={() => handleDeviceToggle('fan')}
-              disabled={isSubmitting}
-            >
-              Fan: {devices.fan?.state ? 'ON' : 'OFF'}
-            </button>
+            {['heater', 'pump', 'fan'].map((device) => {
+              const isPending = device in pendingDevices;
+              const displayState = isPending ? pendingDevices[device] : devices[device]?.state;
+              const label = device.charAt(0).toUpperCase() + device.slice(1);
+
+              return (
+                <button
+                  key={device}
+                  className={`device-btn ${displayState ? 'on' : ''} ${isPending ? 'pending' : ''}`}
+                  onClick={() => handleDeviceToggle(device)}
+                  disabled={isPending}
+                >
+                  {label}: {displayState ? 'ON' : 'OFF'}
+                  {isPending && '...'}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

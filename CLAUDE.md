@@ -67,8 +67,8 @@ cd web && npm run build:deploy
 
 ### API Server
 ```bash
-rsync -avz --delete api/ sagrada.local:/home/peterbutler/www/api/ --exclude node_modules
-ssh sagrada.local "cd /home/peterbutler/www/api && npm install && sudo systemctl restart sagrada-api"
+rsync -avz --delete api/ sagrada.local:/home/peterbutler/sagrada/api/ --exclude node_modules
+ssh sagrada.local "cd /home/peterbutler/sagrada/api && npm install && sudo systemctl restart sagrada-api"
 ```
 
 ### Pi Services

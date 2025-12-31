@@ -147,6 +147,28 @@ export function setupMqttBridge(): void {
 }
 
 /**
+ * Publish a device state update to MQTT
+ * This broadcasts to all subscribers including our own bridge → WebSocket
+ */
+export function publishDeviceState(device: string, state: boolean): void {
+  if (!client) {
+    console.warn('MQTT client not connected, cannot publish device state');
+    return;
+  }
+
+  const topic = `kasa/${device}/state`;
+  const payload = state ? 'on' : 'off';
+
+  client.publish(topic, payload, (err) => {
+    if (err) {
+      console.error(`Failed to publish to ${topic}:`, err);
+    } else {
+      console.log(`Published ${topic}: ${payload}`);
+    }
+  });
+}
+
+/**
  * Close MQTT connection
  */
 export function closeMqttBridge(): void {
