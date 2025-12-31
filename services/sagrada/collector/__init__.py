@@ -16,7 +16,7 @@ def main():
 
     db_config = DBConfig.from_env()
 
-    collector = DataCollector(config.sensors, db_config)
+    collector = DataCollector(config.sensors, db_config, config.mqtt)
 
     try:
         while True:

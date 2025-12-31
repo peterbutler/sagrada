@@ -43,11 +43,21 @@ class SensorConfigs:
     mysql: Optional[MySQLConfig] = None
 
 @dataclass
+class MQTTConfig:
+    broker: str = "localhost"
+    port: int = 1883
+
+@dataclass
 class Config:
     db_config: DBConfig
     sensors: SensorConfigs
     collection_interval: int
     log_level: str = "INFO"
+    mqtt: MQTTConfig = None
+
+    def __post_init__(self):
+        if self.mqtt is None:
+            self.mqtt = MQTTConfig()
 
 def get_environment() -> str:
     """Get the current environment name from .env or environment variables"""
@@ -113,9 +123,19 @@ def load_config(path: Optional[str] = None) -> Config:
         ]
         sensor_configs.mysql = MySQLConfig(queries=mysql_queries)
     
+    # Handle MQTT config if present
+    mqtt_config = MQTTConfig()
+    if 'mqtt' in config_data:
+        mqtt_data = config_data['mqtt']
+        mqtt_config = MQTTConfig(
+            broker=mqtt_data.get('broker', 'localhost'),
+            port=mqtt_data.get('port', 1883)
+        )
+
     return Config(
         db_config=config_data['db_config'],
         sensors=sensor_configs,
         collection_interval=config_data['collection_interval'],
-        log_level=config_data.get('log_level', 'INFO')
+        log_level=config_data.get('log_level', 'INFO'),
+        mqtt=mqtt_config
     )
