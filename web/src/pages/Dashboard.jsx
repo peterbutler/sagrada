@@ -3,12 +3,14 @@ import { Header } from '../components/Header';
 import { QuickStatus } from '../components/QuickStatus';
 import { SensorPanel } from '../components/SensorPanel';
 import { TemperatureChart } from '../components/TemperatureChart';
+import { EnergyFlow } from '../components/EnergyFlow';
 import { Controls } from '../components/Controls';
 import { Schedule } from '../components/Schedule';
 import { Footer } from '../components/Footer';
 import { useSensorData } from '../hooks/useSensorData';
 import { useHistory } from '../hooks/useHistory';
 import { useDelta } from '../hooks/useRateOfChange';
+import { CONSTANTS } from '../utils/energyCalculation';
 
 // Heating loop sensors
 const HEATING_LOOP_LOCATIONS = ['tank', 'beginning', 'floor', 'end', 'pre-tank'];
@@ -63,6 +65,22 @@ export function Dashboard() {
   const currentTemp = deskTemp;
   const deskRates = environmentRates.desk || [];
   const currentRate = deskRates.length > 0 ? deskRates[deskRates.length - 1] : null;
+
+  // Get beginning temperature from 3 minutes ago for floor coil delta calculation
+  // History data is 1-minute resolution, so index (length - 3) is ~3 minutes ago
+  const beginningHistory = heatingLoopHistory.beginning || [];
+  const beginningTempPast = useMemo(() => {
+    const offset = CONSTANTS.FLOOR_TRANSIT_MINUTES;
+    if (beginningHistory.length >= offset) {
+      const pastIndex = beginningHistory.length - offset;
+      return beginningHistory[pastIndex]?.avg;
+    }
+    return null;
+  }, [beginningHistory]);
+
+  // Get tank rate for energy calculations
+  const tankRates = heatingLoopRates.tank || [];
+  const tankRate = tankRates.length > 0 ? tankRates[tankRates.length - 1] : null;
 
   // Build sensor arrays for panels using pre-computed rates from history
   const heatingLoopSensors = useMemo(() => {
@@ -178,6 +196,16 @@ export function Dashboard() {
           sensors={heatingLoopSensors}
           isHeating={isHeating}
         >
+          <EnergyFlow
+            tankTempF={sensors.tank?.temperature}
+            ambientTempF={sensors.desk?.temperature}
+            tankRate={tankRate}
+            heaterState={devices.heater?.state}
+            heaterPower={devices.heater?.power}
+            pumpState={devices.pump?.state}
+            beginningTempPast={beginningTempPast}
+            endTempNow={sensors.end?.temperature}
+          />
           <TemperatureChart
             title="LAST HOUR"
             data={heatingLoopHistory}

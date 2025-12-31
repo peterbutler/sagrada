@@ -5,7 +5,7 @@ import { fetchHistory } from '../api/client';
 const HISTORY_MINUTES = 59;
 
 // Window size for linear regression rate calculation (minutes)
-const RATE_WINDOW_MINUTES = 10;
+const RATE_WINDOW_MINUTES = 5;
 
 /**
  * Get the minute bucket key for a timestamp
