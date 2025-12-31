@@ -169,6 +169,29 @@ export function publishDeviceState(device: string, state: boolean): void {
 }
 
 /**
+ * Publish a generic sensor update to MQTT
+ * Used for target temperature and other control values
+ */
+export function publishSensorUpdate(location: string, metric: string, value: number | boolean): void {
+  if (!client) {
+    console.warn('MQTT client not connected, cannot publish sensor update');
+    return;
+  }
+
+  // Use shed/control/{location}/{metric} format for control values
+  const topic = `shed/control/${location}/${metric}`;
+  const payload = JSON.stringify({ value, ts: Date.now() / 1000 });
+
+  client.publish(topic, payload, (err) => {
+    if (err) {
+      console.error(`Failed to publish to ${topic}:`, err);
+    } else {
+      console.log(`Published ${topic}: ${payload}`);
+    }
+  });
+}
+
+/**
  * Close MQTT connection
  */
 export function closeMqttBridge(): void {
