@@ -12,6 +12,7 @@ const LOCATION_MAP: Record<string, string> = {
   supply: 'beginning',
   return: 'end',
   north: 'outside',
+  main: 'outside',  // outside/main BLE sensor → canonical "outside" location
 };
 
 /**
