@@ -1,128 +1,208 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { calculateEnergyFlow, calculateFloorDelta, formatWatts } from '../utils/energyCalculation';
+import {
+  calculateEnergyFlow,
+  calculateFloorDelta,
+  calculateEquilibrium,
+  formatWatts,
+  CONSTANTS
+} from '../utils/energyCalculation';
 
 /**
- * Energy flow visualization showing how heat moves through the system:
- * ADD (heater) → STORE (tank) → SPEND (floor + ambient losses)
+ * Energy flow visualization showing the actual heat path through the system:
+ * HEATER → TANK → FLOOR → ROOM → OUTSIDE
+ *
+ * Key insight from thermal analysis: The floor is the bottleneck.
+ * It can only deliver heat to the room as fast as the bamboo allows.
  */
 export function EnergyFlow({
   tankTempF,
-  ambientTempF,
+  floorTempF,
+  roomTempF,
+  outsideTempF,
   tankRate,
   heaterState,
   heaterPower,
   pumpState,
-  beginningTempPast,  // Beginning temp from 3 minutes ago
-  endTempNow          // Current end temp
+  beginningTempPast,
+  endTempNow
 }) {
   const energy = calculateEnergyFlow({
     tankTempF,
-    ambientTempF,
+    floorTempF,
+    roomTempF,
+    outsideTempF,
     tankRateFPerHr: tankRate,
     heaterOn: heaterState,
     pumpOn: pumpState,
     heaterPower
   });
 
-  // Calculate time-shifted floor coil delta
+  // Calculate time-shifted floor coil delta (water-side heat extraction)
   const floorDelta = calculateFloorDelta(beginningTempPast, endTempNow);
 
-  // Determine status text based on system state
+  // Calculate equilibrium prediction
+  const equilibrium = calculateEquilibrium(
+    outsideTempF,
+    heaterState ? (heaterPower || CONSTANTS.DEFAULT_HEATER_POWER_W) : 0
+  );
+
+  // Determine system status
   let statusText = '';
+  let statusClass = '';
   if (!energy.valid) {
     statusText = 'Waiting for data...';
+    statusClass = 'waiting';
+  } else if (energy.isKeepingUp === false) {
+    statusText = 'Heater undersized for conditions';
+    statusClass = 'warning';
   } else if (pumpState && heaterState) {
-    statusText = 'Heating & circulating';
+    statusText = 'Active heating';
+    statusClass = 'active';
   } else if (pumpState && !heaterState) {
     statusText = 'Circulating from storage';
+    statusClass = 'circulating';
   } else if (!pumpState && heaterState) {
-    statusText = 'Charging heater reservoir';
+    statusText = 'Charging tank';
+    statusClass = 'charging';
   } else {
-    statusText = 'System idle';
+    statusText = 'Idle';
+    statusClass = 'idle';
   }
 
-  // Net balance indicator
+  // Energy balance indicator
+  const netEnergy = energy.floorOutput != null && energy.buildingLoss != null
+    ? energy.floorOutput - energy.buildingLoss
+    : null;
+
+  let balanceText = '';
   let balanceClass = 'neutral';
-  let balanceLabel = '';
-  if (energy.netBalance != null) {
-    if (energy.netBalance > 50) {
-      balanceClass = 'surplus';
-      balanceLabel = 'surplus';
-    } else if (energy.netBalance < -50) {
-      balanceClass = 'deficit';
-      balanceLabel = 'deficit';
+  if (netEnergy != null) {
+    if (netEnergy > 20) {
+      balanceText = 'Room warming';
+      balanceClass = 'warming';
+    } else if (netEnergy < -20) {
+      balanceText = 'Room cooling';
+      balanceClass = 'cooling';
     } else {
-      balanceLabel = 'stable';
+      balanceText = 'Stable';
+      balanceClass = 'stable';
     }
   }
 
   return (
     <div className="energy-flow">
-      {/* Hero row: Floor delivery + Net balance */}
+      {/* Primary metrics: Floor Output vs Building Loss */}
       <div className="energy-hero">
         <div className="energy-hero-main">
-          <span className="energy-hero-label">FLOOR DELIVERY</span>
-          <span className={`energy-hero-value ${pumpState ? 'active' : 'inactive'}`}>
-            {pumpState ? formatWatts(energy.floorDelivery) : '--'}
+          <span className="energy-hero-label">FLOOR → ROOM</span>
+          <span className={`energy-hero-value ${energy.floorOutput > 0 ? 'active' : 'inactive'}`}>
+            {formatWatts(energy.floorOutput)}
           </span>
-          <span className="energy-hero-status">{statusText}</span>
+          {energy.floorToRoomDeltaF != null && (
+            <span className="energy-hero-detail">
+              Δ{energy.floorToRoomDeltaF.toFixed(0)}°F
+            </span>
+          )}
         </div>
-        <div className="energy-hero-balance">
-          <span className="energy-hero-label">NET BALANCE</span>
-          <span className={`energy-hero-value ${balanceClass}`}>
-            {formatWatts(energy.netBalance, true)}
+
+        <div className="energy-hero-vs">vs</div>
+
+        <div className="energy-hero-secondary">
+          <span className="energy-hero-label">ROOM → OUT</span>
+          <span className={`energy-hero-value loss`}>
+            {formatWatts(energy.buildingLoss)}
           </span>
-          <span className="energy-balance-label">{balanceLabel}</span>
+          {energy.roomToOutsideDeltaF != null && (
+            <span className="energy-hero-detail">
+              Δ{energy.roomToOutsideDeltaF.toFixed(0)}°F
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Detail row: ADD → STORE → SPEND */}
-      <div className="energy-boxes">
-        <EnergyBox
-          label="ADD"
-          sublabel="Heater"
-          value={formatWatts(energy.energyInput)}
-          active={heaterState}
-          indicator={heaterState ? 'on' : 'off'}
-        />
-        <div className="energy-arrow">→</div>
-        <EnergyBox
-          label="STORE"
-          sublabel="Tank"
-          value={formatWatts(energy.tankAccumulation, true)}
-          detail={tankTempF != null ? `${Math.round(tankTempF)}°F` : '--'}
-          active={energy.tankAccumulation != null && Math.abs(energy.tankAccumulation) > 10}
-          indicator={energy.tankAccumulation > 50 ? 'charging' : energy.tankAccumulation < -50 ? 'draining' : 'stable'}
-        />
-        <div className="energy-arrow">→</div>
-        <EnergyBox
-          label="LOSS"
-          sublabel="Ambient"
-          value={formatWatts(energy.tankLoss != null ? -energy.tankLoss : null)}
-          detail={energy.deltaC != null ? `Δ${Math.round(energy.deltaC)}°C` : '--'}
-          active={energy.tankLoss != null && energy.tankLoss > 50}
-          indicator="loss"
-        />
+      {/* Balance indicator */}
+      <div className={`energy-balance ${balanceClass}`}>
+        <span className="energy-balance-net">
+          {netEnergy != null ? formatWatts(netEnergy, true) : '--'}
+        </span>
+        <span className="energy-balance-text">{balanceText}</span>
       </div>
 
-      {/* Floor coil delta (when pump is on and we have time-shifted data) */}
+      {/* Heat path: HEATER → TANK → FLOOR */}
+      <div className="energy-path">
+        <div className="energy-path-row">
+          <EnergyNode
+            label="HEATER"
+            value={formatWatts(energy.heaterInput)}
+            detail={heaterState ? 'ON' : 'OFF'}
+            active={heaterState}
+            type="source"
+          />
+          <div className="energy-arrow">→</div>
+          <EnergyNode
+            label="TANK"
+            value={formatWatts(energy.tankAccumulation, true)}
+            detail={tankTempF != null ? `${Math.round(tankTempF)}°F` : '--'}
+            active={Math.abs(energy.tankAccumulation || 0) > 20}
+            type={energy.tankAccumulation > 20 ? 'charging' : energy.tankAccumulation < -20 ? 'draining' : 'stable'}
+          />
+          <div className="energy-arrow">→</div>
+          <EnergyNode
+            label="FLOOR"
+            value={formatWatts(energy.floorOutput)}
+            detail={floorTempF != null ? `${Math.round(floorTempF)}°F` : '--'}
+            active={pumpState && energy.floorOutput > 0}
+            type="output"
+          />
+        </div>
+
+        {/* Tank loss branch (smaller, de-emphasized) */}
+        <div className="energy-path-loss">
+          <span className="energy-loss-label">Tank loss:</span>
+          <span className="energy-loss-value">{formatWatts(energy.tankLoss)}</span>
+        </div>
+      </div>
+
+      {/* Water-side metrics (when pump running) */}
       {pumpState && floorDelta.valid && (
-        <div className="energy-floor-delta">
-          <span className="energy-floor-label">Floor coil drop:</span>
-          <span className="energy-floor-value">
-            {floorDelta.deltaF.toFixed(1)}°F
-          </span>
-          <span className="energy-floor-note">(begin→end, 3min shift)</span>
+        <div className="energy-water-side">
+          <div className="energy-water-metric">
+            <span className="energy-water-label">Water → Floor:</span>
+            <span className="energy-water-value">{formatWatts(floorDelta.wattsExtracted)}</span>
+            <span className="energy-water-detail">({floorDelta.deltaF.toFixed(1)}°F drop)</span>
+          </div>
         </div>
       )}
+
+      {/* System capacity info */}
+      {equilibrium.valid && (
+        <div className="energy-capacity">
+          <span className="energy-capacity-label">
+            {heaterState ? 'Target equilibrium:' : 'If heating:'}
+          </span>
+          <span className="energy-capacity-value">
+            {equilibrium.roomTempF}°F room
+          </span>
+          <span className="energy-capacity-detail">
+            (+{equilibrium.deltaF}°F above outside)
+          </span>
+        </div>
+      )}
+
+      {/* Status */}
+      <div className={`energy-status ${statusClass}`}>
+        {statusText}
+      </div>
     </div>
   );
 }
 
 EnergyFlow.propTypes = {
   tankTempF: PropTypes.number,
-  ambientTempF: PropTypes.number,
+  floorTempF: PropTypes.number,
+  roomTempF: PropTypes.number,
+  outsideTempF: PropTypes.number,
   tankRate: PropTypes.number,
   heaterState: PropTypes.bool,
   heaterPower: PropTypes.number,
@@ -132,24 +212,22 @@ EnergyFlow.propTypes = {
 };
 
 /**
- * Individual energy box in the flow diagram
+ * Individual node in the heat path
  */
-function EnergyBox({ label, sublabel, value, detail, active, indicator }) {
+function EnergyNode({ label, value, detail, active, type }) {
   return (
-    <div className={`energy-box ${active ? 'active' : ''} ${indicator || ''}`}>
-      <span className="energy-box-label">{label}</span>
-      <span className="energy-box-sublabel">{sublabel}</span>
-      <span className="energy-box-value">{value}</span>
-      {detail && <span className="energy-box-detail">{detail}</span>}
+    <div className={`energy-node ${type} ${active ? 'active' : ''}`}>
+      <span className="energy-node-label">{label}</span>
+      <span className="energy-node-value">{value}</span>
+      <span className="energy-node-detail">{detail}</span>
     </div>
   );
 }
 
-EnergyBox.propTypes = {
+EnergyNode.propTypes = {
   label: PropTypes.string.isRequired,
-  sublabel: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
   detail: PropTypes.string,
   active: PropTypes.bool,
-  indicator: PropTypes.string
+  type: PropTypes.string
 };

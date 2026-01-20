@@ -198,7 +198,9 @@ export function Dashboard() {
         >
           <EnergyFlow
             tankTempF={sensors.tank?.temperature}
-            ambientTempF={sensors.desk?.temperature}
+            floorTempF={sensors.floor?.temperature}
+            roomTempF={sensors.desk?.temperature}
+            outsideTempF={sensors.outside?.temperature}
             tankRate={tankRate}
             heaterState={devices.heater?.state}
             heaterPower={devices.heater?.power}

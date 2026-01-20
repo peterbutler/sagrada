@@ -622,7 +622,7 @@ body {
   margin-bottom: 16px;
 }
 
-/* Energy Flow */
+/* Energy Flow - Heat path visualization */
 .energy-flow {
   margin: 16px 0;
   padding: 12px;
@@ -631,28 +631,37 @@ body {
   border-radius: var(--border-radius);
 }
 
+/* Hero section: Floor→Room vs Room→Out comparison */
 .energy-hero {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .energy-hero-main,
-.energy-hero-balance {
+.energy-hero-secondary {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.energy-hero-main {
+  gap: 2px;
   flex: 1;
 }
 
-.energy-hero-balance {
+.energy-hero-main {
+  align-items: flex-start;
+}
+
+.energy-hero-secondary {
   align-items: flex-end;
-  min-width: 120px;
+}
+
+.energy-hero-vs {
+  font-size: 11px;
+  color: var(--color-dark-gray);
+  padding: 0 8px;
 }
 
 .energy-hero-label {
@@ -663,7 +672,7 @@ body {
 }
 
 .energy-hero-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--color-green);
 }
@@ -672,144 +681,282 @@ body {
   color: var(--color-dark-gray);
 }
 
-.energy-hero-value.surplus {
+.energy-hero-value.active {
   color: var(--color-green);
 }
 
-.energy-hero-value.deficit {
+.energy-hero-value.loss {
   color: var(--color-orange);
 }
 
-.energy-hero-value.neutral {
-  color: var(--color-light-gray);
-}
-
-.energy-hero-status {
+.energy-hero-detail {
   font-size: 10px;
   color: var(--color-light-gray);
 }
 
-.energy-balance-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  color: var(--color-gray);
-}
-
-.energy-boxes {
+/* Balance indicator */
+.energy-balance {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
+  padding: 8px;
+  margin-bottom: 12px;
+  border-radius: var(--border-radius);
+  background-color: var(--color-panel);
 }
 
-.energy-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 8px;
+.energy-balance.warming {
+  background-color: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+.energy-balance.cooling {
+  background-color: rgba(255, 165, 0, 0.1);
+  border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+.energy-balance.stable {
   background-color: var(--color-panel);
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  text-align: center;
 }
 
-.energy-box.active {
-  border-color: var(--color-gray);
-}
-
-.energy-box.on {
-  border-color: var(--color-green);
-  box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
-}
-
-.energy-box.charging {
-  border-color: var(--color-green);
-}
-
-.energy-box.draining {
-  border-color: var(--color-orange);
-}
-
-.energy-box.loss {
-  border-color: var(--color-blue);
-}
-
-.energy-box-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-amber);
+.energy-balance-net {
+  font-size: 14px;
   font-weight: 600;
 }
 
-.energy-box-sublabel {
-  font-size: 9px;
-  color: var(--color-gray);
-}
-
-.energy-box-value {
-  font-size: 16px;
-  font-weight: 600;
+.energy-balance.warming .energy-balance-net {
   color: var(--color-green);
 }
 
-.energy-box-detail {
-  font-size: 10px;
+.energy-balance.cooling .energy-balance-net {
+  color: var(--color-orange);
+}
+
+.energy-balance.stable .energy-balance-net {
   color: var(--color-light-gray);
 }
 
+.energy-balance-text {
+  font-size: 10px;
+  color: var(--color-gray);
+  text-transform: uppercase;
+}
+
+/* Heat path: HEATER → TANK → FLOOR */
+.energy-path {
+  margin-bottom: 12px;
+}
+
+.energy-path-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
 .energy-arrow {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--color-gray);
   flex-shrink: 0;
 }
 
-.energy-floor-delta {
+.energy-node {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border);
-  font-size: 11px;
+  gap: 2px;
+  padding: 8px 4px;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  min-width: 70px;
 }
 
-.energy-floor-label {
+.energy-node.active {
+  border-color: var(--color-gray);
+}
+
+.energy-node.source.active {
+  border-color: var(--color-green);
+  box-shadow: 0 0 6px rgba(0, 255, 0, 0.2);
+}
+
+.energy-node.charging {
+  border-color: var(--color-green);
+}
+
+.energy-node.draining {
+  border-color: var(--color-orange);
+}
+
+.energy-node.output.active {
+  border-color: var(--color-amber);
+}
+
+.energy-node-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--color-gray);
+  font-weight: 600;
 }
 
-.energy-floor-value {
+.energy-node-value {
+  font-size: 13px;
   font-weight: 600;
+  color: var(--color-light-gray);
+}
+
+.energy-node.active .energy-node-value {
+  color: var(--color-green);
+}
+
+.energy-node.draining .energy-node-value {
   color: var(--color-orange);
 }
 
-.energy-floor-note {
-  color: var(--color-dark-gray);
+.energy-node-detail {
   font-size: 9px;
+  color: var(--color-dark-gray);
+}
+
+/* Tank loss indicator */
+.energy-path-loss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 10px;
+}
+
+.energy-loss-label {
+  color: var(--color-dark-gray);
+}
+
+.energy-loss-value {
+  color: var(--color-gray);
+}
+
+/* Water-side metrics */
+.energy-water-side {
+  padding: 8px;
+  margin-bottom: 8px;
+  background-color: var(--color-panel);
+  border-radius: var(--border-radius);
+}
+
+.energy-water-metric {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.energy-water-label {
+  color: var(--color-gray);
+}
+
+.energy-water-value {
+  font-weight: 600;
+  color: var(--color-amber);
+}
+
+.energy-water-detail {
+  color: var(--color-dark-gray);
+  font-size: 10px;
+}
+
+/* Capacity info */
+.energy-capacity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  background-color: var(--color-panel);
+  border-radius: var(--border-radius);
+}
+
+.energy-capacity-label {
+  color: var(--color-gray);
+}
+
+.energy-capacity-value {
+  font-weight: 600;
+  color: var(--color-light-gray);
+}
+
+.energy-capacity-detail {
+  color: var(--color-dark-gray);
+}
+
+/* Status indicator */
+.energy-status {
+  text-align: center;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px;
+  border-radius: var(--border-radius);
+  color: var(--color-gray);
+}
+
+.energy-status.active {
+  color: var(--color-green);
+  background-color: rgba(0, 255, 0, 0.1);
+}
+
+.energy-status.charging {
+  color: var(--color-amber);
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+.energy-status.circulating {
+  color: var(--color-blue);
+  background-color: rgba(0, 136, 255, 0.1);
+}
+
+.energy-status.warning {
+  color: var(--color-orange);
+  background-color: rgba(255, 165, 0, 0.15);
+}
+
+.energy-status.idle {
+  color: var(--color-dark-gray);
 }
 
 /* Responsive energy flow */
 @media (max-width: 768px) {
   .energy-hero {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
 
-  .energy-hero-balance {
-    align-items: flex-start;
+  .energy-hero-main,
+  .energy-hero-secondary {
+    align-items: center;
   }
 
-  .energy-boxes {
+  .energy-hero-vs {
+    display: none;
+  }
+
+  .energy-path-row {
     flex-wrap: wrap;
+    justify-content: center;
   }
 
   .energy-arrow {
     display: none;
   }
 
-  .energy-box {
-    min-width: calc(33% - 8px);
+  .energy-node {
+    min-width: calc(30% - 8px);
   }
 }
