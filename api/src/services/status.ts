@@ -13,6 +13,29 @@ interface CurrentReadingRow extends RowDataPacket {
 }
 
 /**
+ * Map location names from database format to canonical names used by the dashboard.
+ * The MQTT logger stores locations as "{category}/{location}" (e.g., "ambient/desk")
+ * but the dashboard expects simple names (e.g., "desk").
+ * This matches the mapping logic in mqtt/bridge.ts.
+ */
+const LOCATION_MAP: Record<string, string> = {
+  supply: 'beginning',
+  return: 'end',
+  main: 'outside',
+};
+
+function mapLocation(dbLocation: string): string {
+  // Handle category/location format (e.g., "ambient/desk" → "desk")
+  const parts = dbLocation.split('/');
+  if (parts.length === 2) {
+    const [_category, locationKey] = parts;
+    return LOCATION_MAP[locationKey] || locationKey;
+  }
+  // No category prefix, just apply mapping
+  return LOCATION_MAP[dbLocation] || dbLocation;
+}
+
+/**
  * Get current readings for all sensors, formatted as SensorUpdate messages
  * Used to send initial state when a WebSocket client connects
  */
@@ -44,7 +67,7 @@ export async function getCurrentReadings(): Promise<SensorUpdate[]> {
 
     updates.push({
       type: 'sensor_update',
-      location: row.location,
+      location: mapLocation(row.location),
       metric: metric === 'temperature_c' ? 'temperature' : metric,
       value,
       unit,
