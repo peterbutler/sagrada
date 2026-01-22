@@ -11,6 +11,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 
 from sagrada.shared.database import DBConfig
+from sagrada.shared.disk_check import require_disk_space, DiskFullError
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,13 @@ class ReadingsAggregator:
         Returns:
             Number of minute_readings records inserted.
         """
+        # Check disk space before writing
+        try:
+            require_disk_space()
+        except DiskFullError as e:
+            logger.error(f"Cannot aggregate: {e}")
+            return 0
+
         connection = self._get_connection()
 
         try:
@@ -196,6 +204,42 @@ class ReadingsAggregator:
 
         except Exception as e:
             logger.error(f"Error during aggregation: {e}")
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def cleanup_old_readings(self, retention_hours: int = 24) -> int:
+        """Delete old sensor_readings that have been aggregated.
+
+        Raw sensor_readings are only needed until they've been aggregated into
+        minute_readings. This method removes old data to prevent disk space issues.
+
+        Args:
+            retention_hours: Hours of raw data to retain (default 24).
+
+        Returns:
+            Number of rows deleted.
+        """
+        connection = self._get_connection()
+
+        try:
+            with connection.cursor() as cursor:
+                delete_sql = """
+                DELETE FROM sensor_readings
+                WHERE timestamp < DATE_SUB(NOW(), INTERVAL %s HOUR)
+                """
+                cursor.execute(delete_sql, (retention_hours,))
+                deleted = cursor.rowcount
+                connection.commit()
+
+                if deleted > 0:
+                    logger.info(f"Cleaned up {deleted} old sensor_readings (older than {retention_hours}h)")
+
+                return deleted
+
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
             connection.rollback()
             raise
         finally:

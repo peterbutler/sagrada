@@ -10,6 +10,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 
 from .models import Reading
+from .disk_check import require_disk_space, DiskFullError
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,13 @@ class ReadingsStorage:
         """
         if not readings:
             return True
+
+        # Check disk space before writing
+        try:
+            require_disk_space()
+        except DiskFullError as e:
+            logger.error(f"Cannot store readings: {e}")
+            return False
 
         conn = self._get_connection()
         try:

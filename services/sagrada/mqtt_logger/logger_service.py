@@ -13,6 +13,7 @@ from paho.mqtt.enums import CallbackAPIVersion
 from .config import Config
 from sagrada.shared.models import Reading
 from sagrada.shared.database import ReadingsStorage
+from sagrada.shared.disk_check import check_disk_space
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,11 @@ class MQTTLoggerService:
             metric_type="numeric",
             value=str(value),
         )
+
+        # Check disk space before storing
+        if not check_disk_space():
+            logger.warning("Disk full - skipping message persistence")
+            return
 
         # Store to database
         if self.storage.store_reading(reading):

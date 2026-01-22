@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWebSocket, ConnectionState } from '../hooks/useWebSocket';
 import { formatTimeAgo, getStalenessClass } from '../utils/formatting';
+import { SystemHealth } from '../components/SystemHealth';
 
 /**
  * Debug page showing raw WebSocket sensor data
@@ -139,6 +140,9 @@ export function Debug() {
           <span>{stats.lastMessageTime || '--'}</span>
         </div>
       </div>
+
+      {/* System Health */}
+      <SystemHealth />
 
       {/* Current Sensor Values */}
       <h2 style={{ margin: '20px 0 10px 0', fontSize: '14px', color: '#888' }}>

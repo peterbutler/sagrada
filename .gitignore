@@ -43,3 +43,10 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Generated documents/archives
+*.pdf
+*.zip
+pandoc-*.tex
+pandoc-*.yaml
+thermal-dynamics-*.md
