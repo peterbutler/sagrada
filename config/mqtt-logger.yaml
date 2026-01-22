@@ -8,5 +8,14 @@ subscriptions:
     type: "temperature"
   - pattern: "+/+/+/humidity"
     type: "humidity"
+  # Network monitoring metrics
+  - pattern: "+/system/network/state"
+    type: "state"
+  - pattern: "+/system/network/gateway_latency"
+    type: "gateway_latency"
+  - pattern: "+/system/network/internet_latency"
+    type: "internet_latency"
+  - pattern: "+/system/network/failures"
+    type: "failures"
 
 log_level: "INFO"

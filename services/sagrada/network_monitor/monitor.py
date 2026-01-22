@@ -333,18 +333,54 @@ class NetworkMonitorService:
 
         await self._run_recovery_action(level)
 
+    def _publish_metric(self, metric: str, value: any, unit: str = None) -> None:
+        """Publish a single metric to MQTT in sensor format."""
+        if not self.mqtt_client:
+            return
+
+        topic = f"{self.config.mqtt_topic}/{metric}"
+        payload = json.dumps({
+            "value": value,
+            "unit": unit,
+            "ts": time.time(),
+            "sensor": "network-monitor",
+        })
+        self.mqtt_client.publish(topic, payload, qos=1)
+
     def publish_status(self, status: NetworkStatus) -> None:
         """Publish network status to MQTT."""
         if not self.mqtt_client:
             return
 
         try:
+            # Publish combined status (for dashboard)
             payload = json.dumps(status.to_dict())
             self.mqtt_client.publish(
                 self.config.mqtt_topic,
                 payload,
                 qos=1,
             )
+
+            # Publish individual metrics (for logging to MySQL)
+            # State as numeric: 0=healthy, 1=degraded, 2=down
+            state_value = {"healthy": 0, "degraded": 1, "down": 2}.get(status.state.value, -1)
+            self._publish_metric("state", state_value, "state")
+
+            # Gateway latency (from first check)
+            if status.checks:
+                gateway_check = status.checks[0]
+                if gateway_check.success and gateway_check.latency_ms is not None:
+                    self._publish_metric("gateway_latency", round(gateway_check.latency_ms, 1), "ms")
+
+                # Internet latency (from second check if present)
+                if len(status.checks) > 1:
+                    internet_check = status.checks[1]
+                    if internet_check.success and internet_check.latency_ms is not None:
+                        self._publish_metric("internet_latency", round(internet_check.latency_ms, 1), "ms")
+
+            # Failure count
+            self._publish_metric("failures", status.consecutive_failures, "count")
+
             logger.debug(f"Published status: {status.state.value}")
         except Exception as e:
             logger.error(f"Failed to publish status: {e}")
