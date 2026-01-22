@@ -35,6 +35,7 @@ setup(
             "sagrada-display=sagrada.display:main",
             "sagrada-mqtt-logger=sagrada.mqtt_logger:main",
             "sagrada-ble-bridge=sagrada.ble_bridge:main",
+            "sagrada-network-monitor=sagrada.network_monitor:main",
         ],
     },
 )

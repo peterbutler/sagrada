@@ -1,0 +1,32 @@
+# Network Monitor Configuration
+# This service monitors network connectivity and attempts recovery when issues are detected.
+
+# Network settings
+gateway_ip: "10.0.0.1"        # Router/gateway IP to ping
+internet_ip: "8.8.8.8"        # External IP to check internet connectivity
+wifi_interface: "wlan0"       # WiFi interface name
+check_internet: true          # Also check internet, not just gateway
+check_interval: 30            # Seconds between checks
+ping_timeout: 2               # Seconds to wait for ping response
+
+# Recovery settings
+enable_recovery: true         # Enable automatic recovery attempts
+enable_reboot: false          # Enable system reboot as last resort (dangerous!)
+recovery_cooldown: 60         # Seconds between recovery attempts
+
+# Failure thresholds - consecutive failures before escalating
+failures_before_arp_flush: 3          # ~1.5 minutes of failures
+failures_before_wifi_reassociate: 5   # ~2.5 minutes of failures
+failures_before_network_restart: 10   # ~5 minutes of failures
+
+# MQTT settings
+mqtt:
+  broker: "localhost"
+  port: 1883
+  client_id: "network-monitor"
+  keepalive: 60
+
+mqtt_topic: "shed/system/network"
+
+# Logging
+log_level: "INFO"

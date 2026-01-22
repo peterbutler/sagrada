@@ -1,0 +1,19 @@
+[Unit]
+Description=Sagrada Network Connectivity Monitor
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/peterbutler/sagrada
+Environment=PYTHONPATH=/home/peterbutler/sagrada/services
+ExecStart=/home/peterbutler/sagrada/venv/bin/python scripts/run_network_monitor.py
+Restart=always
+RestartSec=30
+
+# Give the service permission to run network commands
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target
