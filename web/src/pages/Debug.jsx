@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWebSocket, ConnectionState } from '../hooks/useWebSocket';
 import { formatTimeAgo, getStalenessClass } from '../utils/formatting';
 import { SystemHealth } from '../components/SystemHealth';
+import { NetworkStatus } from '../components/NetworkStatus';
 
 /**
  * Debug page showing raw WebSocket sensor data
@@ -143,6 +144,9 @@ export function Debug() {
 
       {/* System Health */}
       <SystemHealth />
+
+      {/* Network Status */}
+      <NetworkStatus sensorData={sensorData} />
 
       {/* Current Sensor Values */}
       <h2 style={{ margin: '20px 0 10px 0', fontSize: '14px', color: '#888' }}>
